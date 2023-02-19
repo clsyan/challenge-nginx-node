@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  app:
+    command: npm run dev
+    build:
+      context: app
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynet
+  nginx:
+    restart: always
+    build:
+        context: nginx
+    ports:
+        - "8080:80"
+    networks:
+      - mynet
+    depends_on:
+      - app
+  db:
+    command: --innodb-use-native-aio=0
+    restart: always
+    tty: true
+    image: mysql:5.7
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+    environment:
+      MYSQL_DATABASE: 'mydb'
+      MYSQL_USER: 'testuser'
+      MYSQL_PASSWORD: 'shh'
+      MYSQL_ROOT_PASSWORD: 'shhh'
+    networks:
+      - mynet
+networks:
+  mynet:
+    driver: bridge
